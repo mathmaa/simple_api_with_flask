@@ -33,3 +33,7 @@ Delete a task: Remove a task by its ```id```.
 ```DELETE /task/<id>```
 
 - Deletes a task by its ```id```.
+
+# Testing
+
+For å teste har jeg gitt APIet mange forskjellige requests med parametre jeg har mistenkt at den ville feile på. Underveis fikset jeg disse feilene og testet på nytt. Dette har jeg brukt postman for å gjøre. Det er nok flere feiler som bør lukes ut så et alternativ hadde vært å lage en automatisk test som sender en request og sjekker om det stemmer overens med det forventede svaret.
