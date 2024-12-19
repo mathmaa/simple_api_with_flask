@@ -2,30 +2,13 @@ from flask import Flask, request, abort
 from markupsafe import escape
 import json
 
-class Task:
-    def __init__(self, id, title, description):
-        self.id = id
-        self.title = title
-        self.description = description
-    
-    # Convert the object to a JSON representation.
-    def to_json(self):
-        return {
-            "id": self.id,
-            "title": self.title,
-            "description": self.description
-        }
-
 app = Flask(__name__)
 
-tasks = []
 
 # When the API initializes, read the saved tasks into memory.
 with app.app_context():
     with open('tasklist.json') as json_file:
-        data = json.load(json_file)
-        for item in data:
-            tasks.append(Task(item['id'], item['title'], item['description']))
+        tasks = json.load(json_file)
 
 
 @app.route('/task', methods=['GET', 'POST'])
@@ -33,7 +16,7 @@ def get_all_or_post_task():
     
     # Return all the tasks in the list as JSON representations.
     if request.method == 'GET':
-        return [task.to_json() for task in tasks]
+        return tasks
     
     # Add an item to the list.
     elif request.method == 'POST':
@@ -68,40 +51,45 @@ def get_all_or_post_task():
         else:
             description = ""
 
-        tasks.append(Task(id,title,description))
+        tasks.append({'id': id, 'title': title, 'description': description})
+        save()
 
-        return "Added to list with id: " + str(tasks[len(tasks) - 1].id)
+        return "Item added to list: " + str(tasks[len(tasks) - 1])
 
 
 @app.route('/task/<int:id>', methods=['GET', 'DELETE', 'PUT'])
 def get_delete_update_task(id):
     # Loop over the tasks until the one with the given id is selected.
-    for task in tasks:
-        if task.id == id:
+    for i in range(len(tasks)): 
+        if tasks[i]['id'] == id:
             
             # Return the task as JSON representation.
             if request.method == 'GET':
-                return [task.to_json()]
+                return tasks[i]
             
             # Remove the task.
             elif request.method == 'DELETE':
-                tasks.remove(task)
-                return "Task deleted"
+                delete_task = tasks[i]
+                del tasks[i]
+                #tasks.remove(task)
+                save()
+                return "Task deleted: " + delete_task
             
             # Update the values submitted.
             elif request.method == 'PUT':
                 data = request.form
                 if 'title' in data:
-                    task.title = data['title']
+                    tasks[i]['title'] = data['title']
                 if 'description' in data:
-                    task.description = data['description']
+                    tasks[i]['description'] = data['description']
+                save()
                 return "Task updated"
             
     return "Task not found"
 
 # Create a new, unique id that is the lowest available integer not used by another item.
 def new_unique_id():
-    list_of_ids = [task.id for task in tasks]
+    list_of_ids = [task['id'] for task in tasks]
     list_of_ids.sort()
     last_id = -1
     for id in list_of_ids:
@@ -113,7 +101,11 @@ def new_unique_id():
 
 # Check if an id is unique.
 def is_unique(id):
-    for task in tasks:
-        if task.id == id:
+    for task in tasks: 
+        if task['id'] == id:
             return False
     return True
+
+def save():
+    with open('tasklist.json', 'w') as file:
+        json.dump(tasks, file)
